@@ -13,7 +13,20 @@ library(patchwork)
 library(gridExtra)
 ```
 
+#### Problem 2
+```{r}
+homicide <- read.csv("./data/homicide-data.csv")%>% 
+  na.omit() %>% 
+  unite(city_state, c(city,state),sep = ", ") %>% 
+  mutate(solved = case_when(grepl("Closed", disposition)==TRUE ~ 1,
+  grepl("Closed", disposition)==FALSE ~ 0)) %>% 
+  mutate(unsolved = case_when(grepl("Open", disposition)==TRUE ~ 1,
+  grepl("Open", disposition)==FALSE ~ 0)) 
+homicide_summary = group_by(homicide,city_state) %>% 
+  summarise(total_solved = sum(solved),
+            total_unsolved = sum(unsolved))
+BMD = filter(homicide_summary,city_state=="Baltimore, MD")
+result = prop.test(BMD$total_unsolved, BMD$total_solved+BMD$total_unsolved)
+broom::tidy(result)
 
-
-
-
+```
