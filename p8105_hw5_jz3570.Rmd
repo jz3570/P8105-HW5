@@ -52,3 +52,56 @@ sim_results_df %>%
   geom_point()
 ```
 
+
+# Problem 3
+
+```{r}
+sim_mean_sd = function(n = 30, mu, sigma = 5) {
+  
+  sim_data = tibble(
+    x = rnorm(n, mean = mu, sd = sigma),
+  )
+  result = t.test(sim_data$x)
+  result = broom::tidy(result)
+  sim_data %>% 
+    summarize(
+      mu_hat = mean(x),
+      p_value = result$p.value
+    )
+}
+output = vector("list", 500)
+
+t = tibble(mu = c(1,2,3,4,5,6))%>%
+  mutate(count = c(500)) %>%
+  uncount(count)%>% 
+  mutate(estimate_df = map(.x = mu, ~sim_mean_sd(mu = .x))) %>% 
+  unnest(estimate_df) %>% 
+  mutate(reject = case_when(p_value <= 0.05 ~ 1,
+  p_value > 0.05 ~ 0)) 
+tp = t %>% group_by(mu) %>% 
+  summarise(power = sum(reject)/500)%>% 
+  ggplot(aes(x = mu, y = power))+ 
+  geom_bar(stat="identity")
+
+reject_t = t%>%
+  filter(reject == 1) 
+
+plot1 = t%>% 
+  ggplot(aes(x = mu, y = mu_hat))+
+  geom_point()
+
+
+plot2 = reject_t%>% 
+  ggplot(aes(x = mu, y = mu_hat))+
+  geom_point()
+  
+
+grid.arrange(plot1, plot2, ncol=2)
+
+
+```
+
+# No, their means are not the same, becuase 
+
+
+
