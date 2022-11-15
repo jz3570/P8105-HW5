@@ -29,4 +29,19 @@ BMD = filter(homicide_summary,city_state=="Baltimore, MD")
 result = prop.test(BMD$total_unsolved, BMD$total_solved+BMD$total_unsolved)
 broom::tidy(result)
 
+prop_test_results = function(x,n) {
+  result = prop.test(x, n)
+  broom::tidy(result)
+}
+
+
+
+sim_results_df = 
+  homicide_summary %>% 
+  mutate(
+    estimate_df = 
+      map2(.x = total_unsolved, .y = total_solved+total_unsolved, ~prop_test_results(x = .x, n = .y))
+  ) %>% 
+  unnest(estimate_df)
+  
 ```
