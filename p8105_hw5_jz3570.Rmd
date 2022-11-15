@@ -44,4 +44,11 @@ sim_results_df =
   ) %>% 
   unnest(estimate_df)
   
+
+sim_results_df %>% 
+  ggplot(aes(x = city_state, y = estimate)) + 
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2)+
+  scale_x_discrete(guide = guide_axis(angle = 90))+
+  geom_point()
 ```
+
