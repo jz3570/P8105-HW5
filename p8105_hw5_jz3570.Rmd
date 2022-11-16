@@ -67,7 +67,7 @@ broom::tidy(result)%>%
   select(estimate, conf.low,conf.high)
 ```
 
-By the result above, we see that on average 64.6% of crimes of Baltimore,MD are not solved. The 95% Confidence Interval is [62.8%, 66.3%].
+By the result above, we see that on average 64.6% of crimes of Baltimore,MD are not solved. The 95% Confidence Interval is (62.8%, 66.3%).
 
 ```{r}
 prop_test_results = function(x,n) {
@@ -93,7 +93,8 @@ sim_results_df %>%
   ggplot(aes(x = city_state, y = estimate)) + 
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2)+
   scale_x_discrete(guide = guide_axis(angle = 90))+
-  geom_point()
+  geom_point()+
+  labs(title = "Proportion of Unsolved Crimesfor cities in the US")
 ```
 
 From the plot, we can see that Chicago,IL has the highest proportion of unsolved crimes, and Tulsa, AL has the lowest proportion of unsolved crimes, since it has only one crime and it's solved.
@@ -130,7 +131,7 @@ tp = t %>% group_by(mu) %>%
   #geom_bar(stat="identity")
   geom_line() +
   ylab("Proportion of rejection") +
-  labs(title = "Percentage of Rejection for mu")
+  labs(title = "Plot of power for mu = 1, 2, 3, 4, 5, 6")
 
 tp
 ```
