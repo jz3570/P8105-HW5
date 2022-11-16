@@ -101,7 +101,7 @@ grid.arrange(plot1, plot2, ncol=2)
 
 ```
 
-# No, their means are not the same, becuase 
+# No, their means are not the same.
 
 
 
