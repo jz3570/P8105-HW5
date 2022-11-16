@@ -2,7 +2,7 @@
 title: "P8105"
 author: "Jiawen Zhao"
 date: "11/3/2022"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -12,23 +12,64 @@ library(ggridges)
 library(patchwork)
 library(gridExtra)
 ```
+#### Problem 1
+
+```{r, echo = FALSE}
+full_df = 
+  tibble(
+    files = list.files("data/zip_data/"),
+    path = str_c("data/zip_data/", files)
+  ) %>% 
+  mutate(data = map(path, read_csv)) %>% 
+  unnest()
+```
+
+```{r}
+tidy_df = 
+  full_df %>% 
+  mutate(
+    files = str_replace(files, ".csv", ""),
+    group = str_sub(files, 1, 3)) %>% 
+  pivot_longer(
+    week_1:week_8,
+    names_to = "week",
+    values_to = "outcome",
+    names_prefix = "week_") %>% 
+  mutate(week = as.numeric(week)) %>% 
+  select(group, subj = files, week, outcome)
+```
+
+```{r}
+tidy_df %>% 
+  ggplot(aes(x = week, y = outcome, group = subj, color = group)) + 
+  geom_point() + 
+  geom_path() + 
+  facet_grid(~group)
+```
+
+This plot suggests high within-subject correlation -- subjects who start above average end up above average, and those that start below average end up below average. Subjects in the control group generally don't change over time, but those in the experiment group increase their outcome in a roughly linear way. 
 
 #### Problem 2
 ```{r}
 homicide <- read.csv("./data/homicide-data.csv")%>% 
   na.omit() %>% 
   unite(city_state, c(city,state),sep = ", ") %>% 
-  mutate(solved = case_when(grepl("Closed", disposition)==TRUE ~ 1,
-  grepl("Closed", disposition)==FALSE ~ 0)) %>% 
-  mutate(unsolved = case_when(grepl("Open", disposition)==TRUE ~ 1,
-  grepl("Open", disposition)==FALSE ~ 0)) 
+  mutate(solved = case_when(grepl("Closed by arrest", disposition)==TRUE ~ 1,
+  grepl("Closed by arrest", disposition)==FALSE ~ 0)) %>% 
+  mutate(unsolved = case_when(grepl("Closed by arrest", disposition)==FALSE ~ 1,
+  grepl("Closed by arrest", disposition)==TRUE ~ 0)) 
 homicide_summary = group_by(homicide,city_state) %>% 
   summarise(total_solved = sum(solved),
             total_unsolved = sum(unsolved))
 BMD = filter(homicide_summary,city_state=="Baltimore, MD")
 result = prop.test(BMD$total_unsolved, BMD$total_solved+BMD$total_unsolved)
-broom::tidy(result)
+broom::tidy(result)%>%
+  select(estimate, conf.low,conf.high)
+```
 
+By the result above, we see that on average 64.6% of crimes of Baltimore,MD are not solved. The 95% Confidence Interval is [62.8%, 66.3%].
+
+```{r}
 prop_test_results = function(x,n) {
   result = prop.test(x, n)
   broom::tidy(result)
@@ -46,11 +87,16 @@ sim_results_df =
   
 
 sim_results_df %>% 
+  mutate(
+    city_state = fct_reorder(city_state, -estimate)
+  ) %>%
   ggplot(aes(x = city_state, y = estimate)) + 
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2)+
   scale_x_discrete(guide = guide_axis(angle = 90))+
   geom_point()
 ```
+
+From the plot, we can see that Chicago,IL has the highest proportion of unsolved crimes, and Tulsa, AL has the lowest proportion of unsolved crimes, since it has only one crime and it's solved.
 
 
 # Problem 3
@@ -69,10 +115,10 @@ sim_mean_sd = function(n = 30, mu, sigma = 5) {
       p_value = result$p.value
     )
 }
-output = vector("list", 500)
+output = vector("list", 5000)
 
 t = tibble(mu = c(1,2,3,4,5,6))%>%
-  mutate(count = c(500)) %>%
+  mutate(count = c(5000)) %>%
   uncount(count)%>% 
   mutate(estimate_df = map(.x = mu, ~sim_mean_sd(mu = .x))) %>% 
   unnest(estimate_df) %>% 
@@ -81,19 +127,41 @@ t = tibble(mu = c(1,2,3,4,5,6))%>%
 tp = t %>% group_by(mu) %>% 
   summarise(power = sum(reject)/500)%>% 
   ggplot(aes(x = mu, y = power))+ 
-  geom_bar(stat="identity")
+  #geom_bar(stat="identity")
+  geom_line() +
+  ylab("Proportion of rejection") +
+  labs(title = "Percentage of Rejection for mu")
+
+tp
+```
+
+The power increases very quickly for mu = 1, 2, 3, when the power = 4, 5, 6, the power is very high, over 95% , so it increases slower, and get closer and closer to 100%.
+
+```{r}
 
 reject_t = t%>%
-  filter(reject == 1) 
+  filter(reject == 1) %>% 
+  group_by(mu) %>% 
+  summarise(mean = mean(mu_hat))
 
-plot1 = t%>% 
-  ggplot(aes(x = mu, y = mu_hat))+
-  geom_point()
+t_all = t%>%
+  group_by(mu) %>% 
+  summarise(mean = mean(mu_hat))
+
+plot1 = t_all%>% 
+  ggplot(aes(x = mu, y = mean))+
+  geom_line() +
+  geom_point()+
+  ylab("mean of estimated mu") +
+  labs(title = "plot of mean of estimated mu and mu \nfor all samples")
 
 
 plot2 = reject_t%>% 
-  ggplot(aes(x = mu, y = mu_hat))+
-  geom_point()
+  ggplot(aes(x = mu, y = mean))+
+  geom_line() +
+  geom_point()+
+  ylab("mean of estimated mu") +
+  labs(title = "plot of mean of estimated mu and mu \nfor rejected samples")
   
 
 grid.arrange(plot1, plot2, ncol=2)
@@ -101,7 +169,7 @@ grid.arrange(plot1, plot2, ncol=2)
 
 ```
 
-# No, their means are not the same.
+No, their means are not the same. For the plot of all samples, we see that the mean of estimated mu are about the same as the true mu, but for the plot of rejected samples, the mean of estimated mu are higher than the true mu at first (for mu = 1, 2, 3, 4), then the mean of estimated mu gets closer to the true mu just like the plot for all samples. 
 
 
 
